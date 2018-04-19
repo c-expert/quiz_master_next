@@ -11,6 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * @return void
  * @since 4.4.0
  */
+
+1
+
+<?php
+
+2
+
+/**
 function qsm_settings_questions_tab() {
 	global $mlwQuizMasterNext;
 	$mlwQuizMasterNext->pluginHelper->register_quiz_settings_tabs( __( 'Questions', 'quiz-master-next' ), 'qsm_options_questions_tab_content' );
@@ -49,6 +57,28 @@ function qsm_options_questions_tab_content() {
 	// Load Question Types.
 	$question_types = $mlwQuizMasterNext->pluginHelper->get_question_type_options();
 
+	// Load Categories
+	$qmn_quiz_categories = $wpdb->get_results( $wpdb->prepare( "SELECT category FROM {$wpdb->prefix}mlw_questions WHERE quiz_id=%d AND deleted='0'
+		GROUP BY category", $quiz_id ) );
+	
+	$new_category_array = array() ;
+	foreach($qmn_quiz_categories as $category) {
+		if (strchr($category->category,';') !== false) {
+			$tmp_category_array = explode (';', $category->category );
+			foreach($tmp_category_array as $addcat) {
+				$new_category_array[] = $addcat;
+			}
+		} else {
+			$new_category_array[] = $category->category ;			
+		}
+	}
+	$new_category_array = array_unique ($new_category_array);
+	foreach ($new_category_array as $key => $value) {
+		$new_value = (object) ['category' => $value] ;
+		$new_category_array[$key] = $new_value ;
+	}
+	$qmn_quiz_categories = $new_category_array ;
+		
 	// Display warning if using competing options.
 	$pagination = $mlwQuizMasterNext->pluginHelper->get_section_setting( 'quiz_options', 'pagination' );
 	if ( 0 != $pagination ) {
@@ -165,9 +195,20 @@ function qsm_options_questions_tab_content() {
 					<div id="category_area" class="qsm-row">
 						<label><?php _e( 'Category', 'quiz-master-next' ); ?></label>
 						<div id="categories">
-							<input type="radio" name="category" class="category-radio" id="new_category_new" value="new_category"><label for="new_category_new">New: <input type='text' id='new_category' value='' /></label>
+							<label for="<?php echo sanitize_title_with_dashes( $category->category ); ?>"><input type="checkbox" name="category_<?php echo sanitize_title_with_dashes( $category->category ); ?>" class='category_checkbox'  
+							<?php
+							if ( strpos( ";".$category->category.";", ";".$qmn_edit_category.";") !== false )
+							{
+								echo 'checked="checked" ';
+							}
+							?> /><?php echo esc_attr($category->category); ?></label>
 						</div>
 					</div>
+					<?php
+					$all_categories_data = serialize($qmn_quiz_categories); 
+					$all_categories_encoded = htmlentities($all_categories_data);
+ 					?>
+					<input type="hidden" name="all_categories" id="all_categories" value="<?php echo $all_categories_encoded; ?>" />
 				</main>
 				<footer class="qsm-popup__footer">
 					<button id="save-popup-button" class="qsm-popup__btn qsm-popup__btn-primary">Save Question</button>
