@@ -131,6 +131,30 @@ function qsm_generate_results_details_tab() {
 		'results'                => $results,
 	);
 
+	// Load Categories
+	$qmn_quiz_categories = $wpdb->get_results( $wpdb->prepare( "SELECT category FROM {$wpdb->prefix}mlw_questions WHERE quiz_id=%d AND deleted='0'
+		GROUP BY category", $quiz_id ) );
+	
+	$new_category_array = array() ;
+	foreach($qmn_quiz_categories as $category) {
+		if (strchr($category->category,';') !== false)
+		{
+			$tmp_category_array = explode (';', $category->category );
+			
+			foreach($tmp_category_array as $addcat)	{
+				$new_category_array[] = $addcat;
+			}
+		} else {
+			$new_category_array[] = $category->category ;			
+		}
+	}
+	$new_category_array = array_unique ($new_category_array);
+	foreach ($new_category_array as $key => $value) {
+		$new_value = (object) ['category' => $value] ;
+		$new_category_array[$key] = $new_value ;
+	}
+	$qmn_quiz_categories = $new_category_array ;
+		
 	// Pass through template variable filter
 	$template = apply_filters( 'mlw_qmn_template_variable_results_page', $template, $results_array );
 	$template = str_replace( "\n" , "<br>", $template );
